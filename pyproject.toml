@@ -1,1 +1,24 @@
  
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ablab"
+version = "0.1.0"
+description = "AB Lab — End-to-End A/B Testing Toolkit"
+readme = "README.md"
+authors = [{ name = "Vishesh Srivastava" }]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "scipy>=1.10",
+  "statsmodels>=0.14",
+  "scikit-learn>=1.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ablab*"]
