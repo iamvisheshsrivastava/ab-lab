@@ -26,10 +26,9 @@ def test_cuped_reduces_variance():
     y = rng.normal(0, 1, size=20_000)
     x = make_covariate(y, rho=0.7, seed=1)
     y_adj, theta = cuped(y, x)
-    # CUPED should reduce variance by a meaningful amount with high correlation
     var_reduction = (np.var(y) - np.var(y_adj)) / np.var(y)
     assert theta != 0.0
-    assert var_reduction > 0.25  # >25% reduction with rho≈0.7 is reasonable
+    assert var_reduction > 0.25 
 
 def test_confidence_intervals_behave():
     n, p0, lift = 30_000, 0.08, 0.04
@@ -41,17 +40,14 @@ def test_confidence_intervals_behave():
     assert lo_a <= p1 <= hi_a
 
     lo_diff, hi_diff = ci_diff_proportions_wald(x1, n, x2, n)
-    # since true lift > 0, upper CI should be positive and center > 0
     assert hi_diff > 0
 
 def test_guardrails_srm_and_aa():
-    # SRM should flag a strong mismatch
     srm = srm_chisq(10_000, 15_000, expected_ratio=1.0)
     assert srm["pvalue"] < 1e-6
 
-    # A/A sanity check on identical streams should (usually) not reject
     n = 50_000
     a = np.random.binomial(1, 0.1, size=n)
     b = np.random.binomial(1, 0.1, size=n)
     res = aa_sanity_check(a.sum(), n, b.sum(), n, alpha=0.05)
-    assert res["pvalue"] >= 0.001  # allow randomness but should be reasonably high
+    assert res["pvalue"] >= 0.001 

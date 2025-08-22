@@ -11,7 +11,6 @@ def test_binomial_shapes_and_rates():
 
     p_a = a.mean()
     p_b = b.mean()
-    # sanity: control near baseline, variant higher
     assert abs(p_a - p0) < 0.02
     assert p_b > p_a
 
@@ -26,6 +25,5 @@ def test_make_covariate_has_correlation():
     rng = np.random.default_rng(0)
     y = rng.normal(0, 1, size=10_000)
     x = make_covariate(y, rho=0.6, seed=1)
-    # sample correlation should be close to requested rho
     corr = np.corrcoef(y, x)[0, 1]
     assert 0.5 <= corr <= 0.7
