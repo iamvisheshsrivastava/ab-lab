@@ -39,3 +39,6 @@ pytest_cache/
 .tox/
 .mypy_cache/
 .pytest_cache/
+
+# Project-specific ignores
+ablab.egg-info/
