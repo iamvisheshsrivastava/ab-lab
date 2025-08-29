@@ -1,0 +1,41 @@
+# Virtual environment
+venv/
+.env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints
+
+# VSCode / IDE settings
+.vscode/
+.idea/
+
+# Build / Dist
+build/
+dist/
+*.egg-info/
+
+# Logs / Temp
+*.log
+*.tmp
+*.DS_Store
+Thumbs.db
+
+# Streamlit cache
+.streamlit/
+
+# Test / Coverage
+.coverage
+htmlcov/
+pytest_cache/
+.tox/
+.mypy_cache/
+.pytest_cache/

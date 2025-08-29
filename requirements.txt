@@ -7,3 +7,4 @@ streamlit>=1.31
 plotly>=5.20
 matplotlib>=3.7
 pytest>=7.0
+-e .
