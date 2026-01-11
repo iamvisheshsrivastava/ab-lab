@@ -3,8 +3,6 @@
 AB Lab is a Python toolkit and Streamlit web app for designing, simulating, and analyzing A/B experiments.
 It helps you explore **experiment design → power calculation → inference → decision making**, all in one place.
 
----
-
 ## ✨ Features
 
 * **Data Simulation**
@@ -152,5 +150,6 @@ Contributions are welcome! Feel free to open an issue or submit a pull request.
 * 🌐 [Portfolio](https://visheshsrivastava.com)
 * 💼 [LinkedIn](https://linkedin.com/in/iamvisheshsrivastava)
 * 🐙 [GitHub](https://github.com/iamvisheshsrivastava)
+
 
 ---
