@@ -1,5 +1,7 @@
 # AB Lab - End-to-End A/B Testing Toolkit
 
+**Live demo → https://ab-lab.streamlit.app/** (hosted on Streamlit Community Cloud; free tier apps sleep after inactivity — the first load may take a few seconds to wake up)
+
 AB Lab is a Python toolkit and Streamlit web app for designing, simulating, and analyzing A/B experiments. It covers the full workflow from experiment design and power calculation to inference and decision support.
 
 ## Features
