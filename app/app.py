@@ -54,14 +54,16 @@ if metric_type.startswith("Binary"):
         bot_rate=bot_rate,
         bot_success_p=bot_p,
     )
+    cuped_note = None
     if use_cuped:
         cov_a = make_covariate(a, rho=0.5, seed=42)
         cov_b = make_covariate(b, rho=0.5, seed=43)
+        # Apply CUPED directly to the binary 0/1 outcome and keep the adjustment
+        # continuous — do NOT re-binarize via a median split, which would always
+        # produce a ~50/50 split regardless of the true conversion rate.
         a_adj, theta_a = cuped(a.astype(float), cov_a)
         b_adj, theta_b = cuped(b.astype(float), cov_b)
-        # Re-threshold adjusted to 0/1 by probability rounding for demo
-        a = (a_adj > np.median(a_adj)).astype(int)
-        b = (b_adj > np.median(b_adj)).astype(int)
+        cuped_note = (theta_a, theta_b, float(np.mean(a_adj)), float(np.mean(b_adj)))
     x1, x2 = a.sum(), b.sum()
     p1, p2 = x1/len(a), x2/len(b)
 
@@ -73,6 +75,14 @@ if metric_type.startswith("Binary"):
         st.metric("Variant rate", f"{p2:.4%}")
         st.write(f"**Relative lift**: {lift_relative(p1, p2):.2%}  |  **p-value**: {res['pvalue']:.4g}")
         st.write(f"**95% CI (p_B − p_A)**: [{ci[0]:.4%}, {ci[1]:.4%}]")
+        if cuped_note is not None:
+            theta_a, theta_b, mean_a_adj, mean_b_adj = cuped_note
+            st.caption(
+                f"CUPED-adjusted mean (variance-reduced rate estimate): "
+                f"A={mean_a_adj:.4%}, B={mean_b_adj:.4%} "
+                f"(Theta_A={theta_a:.3f}, Theta_B={theta_b:.3f}). "
+                f"Frequentist test above still uses the raw conversion counts."
+            )
 
         st.subheader("Guardrails")
         srm = srm_chisq(len(a), len(b))
@@ -91,9 +101,12 @@ if metric_type.startswith("Binary"):
 
         st.subheader("Power & Sizing")
         mde_est = mde_proportions(p1, n, alpha=alpha, power=target_power)
-        needed_n = sample_size_proportions(p1, mde=abs(rel_lift), alpha=alpha, power=target_power, relative=True)
         st.write(f"Approx. **MDE** at n={n} per group: **{mde_est:.2%}**")
-        st.write(f"Needed n/group for lift={rel_lift:.2%}: **{needed_n:,}**")
+        try:
+            needed_n = sample_size_proportions(p1, mde=abs(rel_lift), alpha=alpha, power=target_power, relative=True)
+            st.write(f"Needed n/group for lift={rel_lift:.2%}: **{needed_n:,}**")
+        except ValueError as e:
+            st.error(f"Cannot compute needed sample size: {e}. Try a non-zero relative lift.")
         if st.button("Monte-Carlo power (quick sim)"):
             pow_est = power_simulation_binomial(p1, rel_lift, n, nsims=1000, alpha=alpha, seed=7)
             st.write(f"Estimated empirical power: **{pow_est:.3f}**")
@@ -109,63 +122,63 @@ if metric_type.startswith("Binary"):
         st.write(f"Posterior B 95% CI: [{ci_b[0]:.4%}, {ci_b[1]:.4%}]")
         st.write(f"P(B>A): **{prob_b:.3f}**  |  P(relative lift > 0): **{prob_rlift:.3f}**")
 
-with st.expander("Continuous parameters", expanded=True):
-    mu0 = st.number_input(
-        "Baseline mean (control)",
-        min_value=-1_000_000.0,
-        max_value=1_000_000.0,
-        value=10.0,
-        step=0.1,
-    )
-    sigma = st.number_input(
-        "Std dev (both groups)",
-        min_value=0.0001,
-        max_value=1_000_000.0,
-        value=3.0,
-        step=0.1,
-    )
-    rel_lift = st.number_input(
-        "Relative lift for Variant B (e.g. 0.05 = +5%)",
-        min_value=-0.9,
-        max_value=5.0,
-        value=0.05,
-        step=0.01,
-        format="%.2f",
-    )
-    bot_mean = st.number_input(
-        "Bot mean",
-        min_value=-1_000_000.0,
-        max_value=1_000_000.0,
-        value=0.0,
-        step=0.1,
-    )
-    bot_sigma = st.number_input(
-        "Bot std",
-        min_value=0.0001,
-        max_value=1_000_000.0,
-        value=0.1,
-        step=0.1,
-    )
+else:  # metric_type.startswith("Continuous")
+    with st.expander("Continuous parameters", expanded=True):
+        mu0 = st.number_input(
+            "Baseline mean (control)",
+            min_value=-1_000_000.0,
+            max_value=1_000_000.0,
+            value=10.0,
+            step=0.1,
+        )
+        sigma = st.number_input(
+            "Std dev (both groups)",
+            min_value=0.0001,
+            max_value=1_000_000.0,
+            value=3.0,
+            step=0.1,
+        )
+        rel_lift = st.number_input(
+            "Relative lift for Variant B (e.g. 0.05 = +5%)",
+            min_value=-0.9,
+            max_value=5.0,
+            value=0.05,
+            step=0.01,
+            format="%.2f",
+        )
+        bot_mean = st.number_input(
+            "Bot mean",
+            min_value=-1_000_000.0,
+            max_value=1_000_000.0,
+            value=0.0,
+            step=0.1,
+        )
+        bot_sigma = st.number_input(
+            "Bot std",
+            min_value=0.0001,
+            max_value=1_000_000.0,
+            value=0.1,
+            step=0.1,
+        )
 
-
-    a, b = simulate_continuous(
-        n=n,
-        mu_control=mu0,
-        sigma=sigma,
-        lift=rel_lift,
-        relative=True,
-        seasonality_amplitude=season_amp,
-        noise_std=noise_std,
-        bot_rate=bot_rate,
-        bot_mean=bot_mean,
-        bot_sigma=bot_sigma,
-    )
-    if use_cuped:
-        cov_a = make_covariate(a, rho=0.6, seed=11)
-        cov_b = make_covariate(b, rho=0.6, seed=12)
-        a, theta_a = cuped(a, cov_a)
-        b, theta_b = cuped(b, cov_b)
-        st.caption(f"CUPED applied. Theta_A={theta_a:.3f}, Theta_B={theta_b:.3f}")
+        a, b = simulate_continuous(
+            n=n,
+            mu_control=mu0,
+            sigma=sigma,
+            lift=rel_lift,
+            relative=True,
+            seasonality_amplitude=season_amp,
+            noise_std=noise_std,
+            bot_rate=bot_rate,
+            bot_mean=bot_mean,
+            bot_sigma=bot_sigma,
+        )
+        if use_cuped:
+            cov_a = make_covariate(a, rho=0.6, seed=11)
+            cov_b = make_covariate(b, rho=0.6, seed=12)
+            a, theta_a = cuped(a, cov_a)
+            b, theta_b = cuped(b, cov_b)
+            st.caption(f"CUPED applied. Theta_A={theta_a:.3f}, Theta_B={theta_b:.3f}")
 
     with colL:
         st.subheader("Frequentist Inference")

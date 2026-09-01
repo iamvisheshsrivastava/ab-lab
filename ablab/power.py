@@ -21,6 +21,8 @@ def sample_size_proportions(
     Per-group sample size for two-proportion z-test.
     mde: relative (e.g., 0.02 => +2% over p1) if relative=True, else absolute delta.
     """
+    if abs(mde) < 1e-12:
+        raise ValueError("Minimum detectable effect must be non-zero")
     if relative:
         p2 = p1 * (1 + mde)
     else:
@@ -30,6 +32,8 @@ def sample_size_proportions(
     z2 = stats.norm.ppf(power)
     q1, q2 = 1 - p1, 1 - p2
     se = math.sqrt(p1*q1 + p2*q2)
+    if abs(p2 - p1) < 1e-12:
+        raise ValueError("Minimum detectable effect must be non-zero")
     n = ((z1 + z2) * se / (p2 - p1))**2
     return int(math.ceil(n))
 
