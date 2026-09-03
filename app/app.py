@@ -108,8 +108,15 @@ if metric_type.startswith("Binary"):
         except ValueError as e:
             st.error(f"Cannot compute needed sample size: {e}. Try a non-zero relative lift.")
         if st.button("Monte-Carlo power (quick sim)"):
-            pow_est = power_simulation_binomial(p1, rel_lift, n, nsims=1000, alpha=alpha, seed=7)
-            st.write(f"Estimated empirical power: **{pow_est:.3f}**")
+            # `n` (samples per group) is user-controlled up to 1,000,000. A fixed
+            # nsims=1000 combined with a large n means up to ~1e9 simulated draws
+            # in a single click (measured ~270s wall-clock at n=1e6), which blocks
+            # the shared Streamlit server for all users. Cap the total simulation
+            # budget (n * nsims) instead of using a fixed nsims.
+            sim_budget = 2_000_000
+            mc_nsims = max(20, min(1000, sim_budget // max(n, 1)))
+            pow_est = power_simulation_binomial(p1, rel_lift, n, nsims=mc_nsims, alpha=alpha, seed=7)
+            st.write(f"Estimated empirical power (nsims={mc_nsims:,}): **{pow_est:.3f}**")
 
     if show_bayes:
         st.subheader("Bayesian View (Beta-Binomial)")
