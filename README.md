@@ -2,17 +2,19 @@
 
 **Live demo → https://ab-lab.streamlit.app/** (hosted on Streamlit Community Cloud; free tier apps sleep after inactivity — the first load may take a few seconds to wake up)
 
-AB Lab is a Python toolkit and Streamlit web app for designing, simulating, and analyzing A/B experiments. It covers the full workflow from experiment design and power calculation to inference and decision support.
+AB Lab is a small Python library plus a Streamlit app for the parts of A/B testing I kept re-writing by hand: sizing an experiment, simulating fake data to sanity-check a design, running the actual test, and then arguing with myself about whether the result is real.
 
 ## Features
 
-- Data simulation for binary metrics such as conversion rate and continuous metrics such as revenue
-- Frequentist inference including t-tests, Welch's test, z-tests for proportions, and Mann-Whitney U
-- Power and sample-size estimation with both closed-form calculators and Monte Carlo simulation
-- CUPED variance reduction
-- Guardrails such as A/A sanity checks and sample-ratio-mismatch detection
-- Optional Bayesian views for conversion-rate experiments
-- Streamlit UI for interactive experiment exploration
+- Simulate binary metrics (conversion) and continuous metrics (revenue, time-on-page), with optional seasonality, noise, and bot traffic mixed in so the "clean" case isn't the only one you can test against
+- Two-proportion z-test, pooled and Welch's t-test, and Mann-Whitney U for when a metric is too skewed for a t-test to be trustworthy
+- Sample-size and MDE calculators (closed-form) plus a Monte Carlo power simulation for when the closed-form normal approximation feels too optimistic
+- CUPED variance reduction using a pre-experiment covariate — helps most when that covariate is actually correlated with the metric, does nothing otherwise
+- Guardrails: sample-ratio-mismatch (chi-square) and an A/A sanity check
+- A Beta-Binomial Bayesian view for conversion experiments, if you want P(B beats A) instead of a p-value
+- Streamlit UI wrapping all of the above so you don't have to open a notebook every time
+
+A couple of honest caveats: the Wald CI for a difference in proportions is the quick-and-dirty version, not the more robust Newcombe score interval — fine for a dashboard, not for a paper. `mde_proportions` is a one-shot approximation (it assumes p2 ≈ p1 when estimating the standard error) rather than an iterative solve, so treat it as a ballpark, not a guarantee.
 
 ## Quickstart
 
@@ -79,6 +81,10 @@ from ablab.metrics import cuped
 
 adjusted, theta = cuped(y_metric, covariate)
 ```
+
+There's also a self-contained script, `examples/run_cli_example.py`, that sizes an
+experiment, simulates it, runs the z-test, an A/A check, and CUPED end to end —
+useful as a starting point if you'd rather not launch the Streamlit app.
 
 ## Testing
 
