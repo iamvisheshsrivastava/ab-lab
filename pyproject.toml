@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ablab"
-version = "0.1.0"
+version = "1.0.0"
 description = "AB Lab — End-to-End A/B Testing Toolkit"
 readme = "README.md"
 authors = [{ name = "Vishesh Srivastava" }]
