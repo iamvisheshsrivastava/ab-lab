@@ -1,4 +1,5 @@
  
+import pytest
 from ablab.power import (
     sample_size_proportions,
     mde_proportions,
@@ -35,3 +36,7 @@ def test_sample_size_means_behaves():
     assert n2 < n1
 
     assert n1 > 0 and n2 > 0
+
+def test_sample_size_means_rejects_zero_mde():
+    with pytest.raises(ValueError):
+        sample_size_means(sigma=3.0, mde=0.0, power=0.8)

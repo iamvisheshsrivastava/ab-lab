@@ -71,6 +71,8 @@ def sample_size_means(
     """
     Per-group n for t-test on means (using normal approx).
     """
+    if abs(mde) < 1e-12:
+        raise ValueError("Minimum detectable effect must be non-zero")
     z1 = _z_alpha(alpha, two_sided)
     z2 = stats.norm.ppf(power)
     n = 2 * (sigma * (z1 + z2) / mde) ** 2
