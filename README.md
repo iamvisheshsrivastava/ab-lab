@@ -16,6 +16,22 @@ AB Lab is a small Python library plus a Streamlit app for the parts of A/B testi
 
 A couple of honest caveats: the Wald CI for a difference in proportions is the quick-and-dirty version, not the more robust Newcombe score interval — fine for a dashboard, not for a paper. `mde_proportions` is a one-shot approximation (it assumes p2 ≈ p1 when estimating the standard error) rather than an iterative solve, so treat it as a ballpark, not a guarantee.
 
+## Screenshots
+
+The Streamlit Cloud demo sleeps after inactivity (see the live demo note above), so these are captures of the app running locally via `streamlit run app/app.py`.
+
+**Binary metric run** — two-proportion z-test, SRM/A-A guardrails, and closed-form sample-size/MDE numbers for a simulated conversion test:
+
+![Binary conversion overview](docs/screenshots/01_binary_overview.png)
+
+**CUPED + Bayesian view** — the same binary run with CUPED variance reduction applied to the raw 0/1 outcome (not re-binarized) and the Beta-Binomial posterior view turned on:
+
+![CUPED adjustment and Bayesian posterior view](docs/screenshots/02_cuped_bayesian.png)
+
+**Continuous metric run** — Welch/pooled t-tests, Cohen's d and Hedges' g, Mann-Whitney U as a guardrail, and CUPED applied to a simulated revenue-like metric:
+
+![Continuous metric with CUPED](docs/screenshots/03_continuous_metric.png)
+
 ## Quickstart
 
 Clone the repo:
