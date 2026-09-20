@@ -51,3 +51,39 @@ def test_guardrails_srm_and_aa():
     b = np.random.binomial(1, 0.1, size=n)
     res = aa_sanity_check(a.sum(), n, b.sum(), n, alpha=0.05)
     assert res["pvalue"] >= 0.001 
+
+
+def test_input_validation_gaps():
+    import pytest
+    from ablab.tests import ztest_proportions
+    from ablab.metrics import ci_diff_proportions_wald, ci_proportion_wilson
+    from ablab.bayes import beta_posteriors
+    from ablab.guardrails import srm_chisq
+    from ablab.power import sample_size_proportions, sample_size_means, mde_proportions
+
+    with pytest.raises(ValueError):
+        ztest_proportions(1, 0, 1, 10)
+    with pytest.raises(ValueError):
+        ztest_proportions(11, 10, 1, 10)
+    with pytest.raises(ValueError):
+        ci_diff_proportions_wald(1, 0, 1, 10)
+    with pytest.raises(ValueError):
+        ci_proportion_wilson(5, 3)
+    with pytest.raises(ValueError):
+        beta_posteriors(5, 3, 1, 10)
+    with pytest.raises(ValueError):
+        srm_chisq(0, 0)
+    with pytest.raises(ValueError):
+        sample_size_proportions(0.1, 0.1, alpha=1.5)
+    with pytest.raises(ValueError):
+        sample_size_proportions(1.2, 0.1)
+    with pytest.raises(ValueError):
+        sample_size_means(-1.0, 0.1)
+    with pytest.raises(ValueError):
+        mde_proportions(0.1, 0)
+
+
+def test_continuity_correction_never_flips_sign():
+    from ablab.tests import ztest_proportions
+    r = ztest_proportions(50, 1000, 51, 1000, continuity=True)
+    assert r["stat"] == 0.0 and r["pvalue"] == 1.0

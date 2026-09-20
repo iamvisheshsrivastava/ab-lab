@@ -4,12 +4,19 @@ import math
 import numpy as np
 from scipy import stats
 
+def _check_counts(x1: int, n1: int, x2: int, n2: int) -> None:
+    if n1 <= 0 or n2 <= 0:
+        raise ValueError("Group sizes must be positive")
+    if not (0 <= x1 <= n1) or not (0 <= x2 <= n2):
+        raise ValueError("Successes must satisfy 0 <= x <= n")
+
 def ztest_proportions(
     x1: int, n1: int, x2: int, n2: int, two_sided: bool = True, continuity: bool = False
 ) -> dict:
     """
     Two-proportion z-test (H0: p1 == p2).
     """
+    _check_counts(x1, n1, x2, n2)
     p1 = x1 / n1
     p2 = x2 / n2
     p_pool = (x1 + x2) / (n1 + n2)
@@ -21,7 +28,7 @@ def ztest_proportions(
         if continuity:
             # simple CC: subtract 0.5/n term in numerator direction
             cc = 0.5 * (1/n1 + 1/n2)
-            z = (abs(p2 - p1) - cc) / se * np.sign(p2 - p1)
+            z = max(abs(p2 - p1) - cc, 0.0) / se * float(np.sign(p2 - p1))
     if two_sided:
         p = 2 * (1 - stats.norm.cdf(abs(z)))
     else:

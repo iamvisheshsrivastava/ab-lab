@@ -5,6 +5,12 @@ import numpy as np
 from scipy import stats
 from .simulate import simulate_binomial
 
+def _check_common(alpha: float, power: float) -> None:
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be in (0, 1)")
+    if not 0 < power < 1:
+        raise ValueError("power must be in (0, 1)")
+
 def _z_alpha(alpha: float, two_sided: bool) -> float:
     return stats.norm.ppf(1 - alpha/2) if two_sided else stats.norm.ppf(1 - alpha)
 
@@ -23,6 +29,9 @@ def sample_size_proportions(
     """
     if abs(mde) < 1e-12:
         raise ValueError("Minimum detectable effect must be non-zero")
+    _check_common(alpha, power)
+    if not 0 < p1 < 1:
+        raise ValueError("Baseline p1 must be in (0, 1)")
     if relative:
         p2 = p1 * (1 + mde)
     else:
@@ -49,6 +58,11 @@ def mde_proportions(
     """
     Approximate MDE given baseline p1 and per-group n.
     """
+    _check_common(alpha, power)
+    if not 0 < p1 < 1:
+        raise ValueError("Baseline p1 must be in (0, 1)")
+    if n_per_group <= 0:
+        raise ValueError("n_per_group must be positive")
     z1 = _z_alpha(alpha, two_sided)
     z2 = stats.norm.ppf(power)
     # solve for |p2 - p1| ≈ (z1 + z2) * sqrt((p1q1 + p2q2)/n)
@@ -73,6 +87,9 @@ def sample_size_means(
     """
     if abs(mde) < 1e-12:
         raise ValueError("Minimum detectable effect must be non-zero")
+    _check_common(alpha, power)
+    if sigma <= 0:
+        raise ValueError("sigma must be positive")
     z1 = _z_alpha(alpha, two_sided)
     z2 = stats.norm.ppf(power)
     n = 2 * (sigma * (z1 + z2) / mde) ** 2

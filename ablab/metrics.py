@@ -45,6 +45,8 @@ def ci_proportion_wilson(x: int | float, n: int, conf_level: float = 0.95) -> Tu
     """
     Wilson score interval for a single proportion.
     """
+    if n < 0 or x < 0 or x > n:
+        raise ValueError("Require n >= 0 and 0 <= x <= n")
     if n == 0:
         return (0.0, 1.0)
     z = stats.norm.ppf(1 - (1 - conf_level)/2)
@@ -59,6 +61,10 @@ def ci_diff_proportions_wald(x1: int, n1: int, x2: int, n2: int, conf_level: flo
     Wald CI for difference (p2 - p1). For quick visualizations; for production prefer
     score-based (Newcombe) methods.
     """
+    if n1 <= 0 or n2 <= 0:
+        raise ValueError("Group sizes must be positive")
+    if not (0 <= x1 <= n1) or not (0 <= x2 <= n2):
+        raise ValueError("Successes must satisfy 0 <= x <= n")
     p1, p2 = x1/n1, x2/n2
     se = math.sqrt(p1*(1 - p1)/n1 + p2*(1 - p2)/n2)
     z = stats.norm.ppf(1 - (1 - conf_level)/2)

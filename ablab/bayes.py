@@ -11,6 +11,10 @@ def beta_posteriors(
     Conjugate Beta-Binomial posteriors for p_A and p_B.
     Returns (alpha_a, beta_a), (alpha_b, beta_b).
     """
+    if n1 < 0 or n2 < 0 or not (0 <= x1 <= n1) or not (0 <= x2 <= n2):
+        raise ValueError("Require n >= 0 and 0 <= x <= n for both groups")
+    if alpha_prior <= 0 or beta_prior <= 0:
+        raise ValueError("Prior parameters must be positive")
     a_a, b_a = alpha_prior + x1, beta_prior + (n1 - x1)
     a_b, b_b = alpha_prior + x2, beta_prior + (n2 - x2)
     return (float(a_a), float(b_a)), (float(a_b), float(b_b))

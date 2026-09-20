@@ -9,6 +9,10 @@ def srm_chisq(n_a: int, n_b: int, expected_ratio: float = 1.0) -> dict:
     Sample Ratio Mismatch test via chi-square goodness-of-fit.
     expected_ratio = n_b / n_a that you planned (default 1:1).
     """
+    if n_a < 0 or n_b < 0 or n_a + n_b == 0:
+        raise ValueError("Group sizes must be non-negative with a positive total")
+    if expected_ratio <= 0:
+        raise ValueError("expected_ratio must be positive")
     total = n_a + n_b
     exp_a = total / (1 + expected_ratio)
     exp_b = total - exp_a
