@@ -6,5 +6,9 @@ scikit-learn>=1.3
 streamlit>=1.31
 plotly>=5.20
 matplotlib>=3.7
-pytest>=7.0
+# Editable self-install so `ablab` is importable from app/app.py and the test
+# suite without a src/ layout. This is required at runtime (Streamlit Cloud
+# runs app/app.py, which does `from ablab...` with no other package install
+# step) and in CI (`pytest` console script does not add the repo root to
+# sys.path on its own) — see issue #11 for why this isn't dev-only.
 -e .
