@@ -34,6 +34,12 @@ from .bayes import (
     credible_interval_beta,
     prob_relative_lift_gt_zero,
 )
+from .sequential import (
+    mixture_sprt_proportions,
+    mixture_sprt_means,
+    always_valid_ci_proportions,
+    always_valid_ci_means,
+)
 __all__ = [
     # simulate
     "simulate_binomial",
@@ -66,4 +72,9 @@ __all__ = [
     "posterior_samples",
     "credible_interval_beta",
     "prob_relative_lift_gt_zero",
+    # sequential
+    "mixture_sprt_proportions",
+    "mixture_sprt_means",
+    "always_valid_ci_proportions",
+    "always_valid_ci_means",
 ]

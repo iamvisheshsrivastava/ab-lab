@@ -18,6 +18,12 @@ from ablab.metrics import (
 from ablab.power import sample_size_proportions, sample_size_means, power_simulation_binomial, mde_proportions
 from ablab.guardrails import srm_chisq, aa_sanity_check
 from ablab.bayes import beta_posteriors, credible_interval_beta, prob_b_beats_a, prob_relative_lift_gt_zero
+from ablab.sequential import (
+    mixture_sprt_proportions,
+    mixture_sprt_means,
+    always_valid_ci_proportions,
+    always_valid_ci_means,
+)
 
 st.set_page_config(page_title="AB Lab", layout="wide")
 
@@ -32,6 +38,7 @@ with st.sidebar:
     bot_rate = st.slider("Bot traffic rate", 0.0, 0.9, 0.0, 0.01)
     use_cuped = st.checkbox("Apply CUPED (variance reduction)", value=False)
     show_bayes = st.checkbox("Show Bayesian view", value=False)
+    show_sequential = st.checkbox("Sequential monitoring (always-valid)", value=False)
     st.divider()
     st.header("Power / Sizing")
     alpha = st.number_input("Significance α", 0.0001, 0.2, 0.05, format="%.4f")
@@ -129,6 +136,20 @@ if metric_type.startswith("Binary"):
         st.write(f"Posterior B 95% CI: [{ci_b[0]:.4%}, {ci_b[1]:.4%}]")
         st.write(f"P(B>A): **{prob_b:.3f}**  |  P(relative lift > 0): **{prob_rlift:.3f}**")
 
+    if show_sequential:
+        st.subheader("Sequential Monitoring (always-valid)")
+        seq_result = mixture_sprt_proportions(x1, len(a), x2, len(b), alpha=alpha)
+        seq_ci = always_valid_ci_proportions(x1, len(a), x2, len(b), alpha=alpha)
+        st.write(
+            f"Anytime-valid p-value: **{seq_result['pvalue']:.4g}**  |  "
+            f"decision: **{seq_result['decision']}**"
+        )
+        st.write(f"Always-valid CI (p_B − p_A): [{seq_ci[0]:.4%}, {seq_ci[1]:.4%}]")
+        st.caption(
+            "Unlike the fixed-horizon p-value/CI above, these stay statistically valid "
+            "even if you check them after every new observation."
+        )
+
 else:  # metric_type.startswith("Continuous")
     with st.expander("Continuous parameters", expanded=True):
         mu0 = st.number_input(
@@ -212,3 +233,17 @@ else:  # metric_type.startswith("Continuous")
         mde_demo = 0.05 * mu0 if mu0 != 0 else 0.05  # illustrative
         needed_n = sample_size_means(sigma, mde=mde_demo, alpha=alpha, power=target_power)
         st.write(f"For MDE≈{mde_demo:.3g}, σ={sigma:.3g}: **n/group ≈ {needed_n:,}**")
+
+    if show_sequential:
+        st.subheader("Sequential Monitoring (always-valid)")
+        seq_result = mixture_sprt_means(a, b, alpha=alpha)
+        seq_ci = always_valid_ci_means(a, b, alpha=alpha)
+        st.write(
+            f"Anytime-valid p-value: **{seq_result['pvalue']:.4g}**  |  "
+            f"decision: **{seq_result['decision']}**"
+        )
+        st.write(f"Always-valid CI (mean_B − mean_A): [{seq_ci[0]:.3g}, {seq_ci[1]:.3g}]")
+        st.caption(
+            "Unlike the fixed-horizon p-value above, this stays statistically valid "
+            "even if you check it after every new observation."
+        )
