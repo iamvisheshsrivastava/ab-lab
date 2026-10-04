@@ -25,6 +25,7 @@ from ablab.sequential import (
     always_valid_ci_means,
 )
 from ablab.bandits import simulate_bandit_run
+from ablab.report import build_report
 
 st.set_page_config(page_title="AB Lab", layout="wide")
 
@@ -198,6 +199,7 @@ elif metric_type.startswith("Binary"):
         st.write(f"Posterior B 95% CI: [{ci_b[0]:.4%}, {ci_b[1]:.4%}]")
         st.write(f"P(B>A): **{prob_b:.3f}**  |  P(relative lift > 0): **{prob_rlift:.3f}**")
 
+    seq_result = None
     if show_sequential:
         st.subheader("Sequential Monitoring (always-valid)")
         seq_result = mixture_sprt_proportions(x1, len(a), x2, len(b), alpha=alpha)
@@ -211,6 +213,31 @@ elif metric_type.startswith("Binary"):
             "Unlike the fixed-horizon p-value/CI above, these stay statistically valid "
             "even if you check them after every new observation."
         )
+
+    report_results = {
+        "metric_type": "binary",
+        "p_value_ztest": res["pvalue"],
+        "control_rate": p1,
+        "variant_rate": p2,
+        "relative_lift": lift_relative(p1, p2),
+        "ci_95_diff": ci,
+    }
+    if seq_result is not None:
+        report_results["sequential_pvalue"] = seq_result["pvalue"]
+        report_results["sequential_decision"] = seq_result["decision"]
+    report_guardrails = {"srm_chisq": srm, "aa_sanity_check": aa}
+    report_metadata = {
+        "title": "AB Lab Experiment Report — Binary Metric",
+        "samples_per_group": int(n),
+        "alpha": alpha,
+    }
+    report_html = build_report(report_results, report_guardrails, report_metadata)
+    st.download_button(
+        "Download report (HTML)",
+        data=report_html,
+        file_name="ab_lab_report.html",
+        mime="text/html",
+    )
 
 else:  # metric_type.startswith("Continuous")
     with st.expander("Continuous parameters", expanded=True):
@@ -296,6 +323,7 @@ else:  # metric_type.startswith("Continuous")
         needed_n = sample_size_means(sigma, mde=mde_demo, alpha=alpha, power=target_power)
         st.write(f"For MDE≈{mde_demo:.3g}, σ={sigma:.3g}: **n/group ≈ {needed_n:,}**")
 
+    seq_result = None
     if show_sequential:
         st.subheader("Sequential Monitoring (always-valid)")
         seq_result = mixture_sprt_means(a, b, alpha=alpha)
@@ -309,3 +337,29 @@ else:  # metric_type.startswith("Continuous")
             "Unlike the fixed-horizon p-value above, this stays statistically valid "
             "even if you check it after every new observation."
         )
+
+    report_results = {
+        "metric_type": "continuous",
+        "p_value_welch": res_welch["pvalue"],
+        "p_value_pooled_ttest": res_pooled["pvalue"],
+        "cohens_d": d,
+        "hedges_g": g,
+        "mean_a": float(np.mean(a)),
+        "mean_b": float(np.mean(b)),
+    }
+    if seq_result is not None:
+        report_results["sequential_pvalue"] = seq_result["pvalue"]
+        report_results["sequential_decision"] = seq_result["decision"]
+    report_guardrails = {"mannwhitney": mw}
+    report_metadata = {
+        "title": "AB Lab Experiment Report — Continuous Metric",
+        "samples_per_group": int(n),
+        "alpha": alpha,
+    }
+    report_html = build_report(report_results, report_guardrails, report_metadata)
+    st.download_button(
+        "Download report (HTML)",
+        data=report_html,
+        file_name="ab_lab_report.html",
+        mime="text/html",
+    )

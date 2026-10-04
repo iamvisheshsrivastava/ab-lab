@@ -46,6 +46,7 @@ from .bandits import (
     ucb1_step,
     simulate_bandit_run,
 )
+from .report import build_report
 __all__ = [
     # simulate
     "simulate_binomial",
@@ -88,4 +89,6 @@ __all__ = [
     "epsilon_greedy_step",
     "ucb1_step",
     "simulate_bandit_run",
+    # report
+    "build_report",
 ]
