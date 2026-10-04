@@ -24,6 +24,7 @@ from ablab.sequential import (
     always_valid_ci_proportions,
     always_valid_ci_means,
 )
+from ablab.bandits import simulate_bandit_run
 
 st.set_page_config(page_title="AB Lab", layout="wide")
 
@@ -31,7 +32,10 @@ st.title("🧪 AB Lab — A/B Testing Toolkit")
 
 with st.sidebar:
     st.header("Simulation Settings")
-    metric_type = st.radio("Metric type", ["Binary (conversion)", "Continuous (value)"])
+    metric_type = st.radio(
+        "Metric type",
+        ["Binary (conversion)", "Continuous (value)", "Bandit simulator"],
+    )
     n = st.number_input("Samples per group", 100, 1_000_000, 5000, step=100)
     season_amp = st.slider("Seasonality amplitude", 0.0, 0.9, 0.0, 0.05)
     noise_std = st.slider("Noise (std)", 0.0, 0.5, 0.0, 0.01)
@@ -46,7 +50,65 @@ with st.sidebar:
 
 colL, colR = st.columns([1, 1])
 
-if metric_type.startswith("Binary"):
+if metric_type.startswith("Bandit"):
+    st.subheader("Multi-Armed Bandit Simulator")
+    st.caption(
+        "Adaptive allocation across arms (Thompson Sampling / epsilon-greedy / UCB1), "
+        "as an alternative to a fixed-split A/B test when you want to minimize regret "
+        "while still learning."
+    )
+    with st.expander("Bandit parameters", expanded=True):
+        rates_str = st.text_input("True conversion rates per arm (comma-separated)", "0.10, 0.12, 0.08")
+        try:
+            true_rates = [float(x.strip()) for x in rates_str.split(",") if x.strip() != ""]
+        except ValueError:
+            true_rates = []
+            st.error("Could not parse arm rates. Use comma-separated numbers, e.g. 0.10, 0.12, 0.08")
+        n_steps = st.number_input("Number of steps", 10, 200_000, 2000, step=10)
+        strategy = st.selectbox("Strategy", ["thompson", "epsilon_greedy", "ucb1"])
+        epsilon = st.slider("Epsilon (epsilon-greedy only)", 0.0, 1.0, 0.1, 0.01)
+        ucb_c = st.slider("Exploration coefficient c (UCB1 only)", 0.0, 5.0, 2.0, 0.1)
+        bandit_seed = st.number_input("Random seed", 0, 10_000, 7, step=1)
+
+    if len(true_rates) >= 2:
+        run = simulate_bandit_run(
+            true_rates, int(n_steps),
+            strategy=strategy, seed=int(bandit_seed),
+            epsilon=epsilon, c=ucb_c,
+        )
+        with colL:
+            st.subheader("Outcome")
+            st.write(f"Best arm: **{int(np.argmax(true_rates))}** (true rate {max(true_rates):.2%})")
+            st.write(f"Final cumulative regret: **{run['cumulative_regret'][-1]:.2f}**")
+            counts_df = pd.DataFrame({
+                "arm": list(range(len(true_rates))),
+                "true_rate": true_rates,
+                "trials": run["arm_counts"],
+                "successes": run["arm_successes"],
+            })
+            st.dataframe(counts_df, use_container_width=True)
+        with colR:
+            st.subheader("Cumulative regret")
+            regret_df = pd.DataFrame({
+                "step": np.arange(1, len(run["cumulative_regret"]) + 1),
+                "cumulative_regret": run["cumulative_regret"],
+            })
+            st.plotly_chart(px.line(regret_df, x="step", y="cumulative_regret"), use_container_width=True)
+
+            st.subheader("Allocation share over time")
+            window = max(1, int(n_steps) // 50)
+            alloc_df = pd.DataFrame({"step": np.arange(len(run["allocations"])), "arm": run["allocations"]})
+            alloc_df["bucket"] = alloc_df["step"] // window
+            share = (
+                alloc_df.groupby(["bucket", "arm"]).size().reset_index(name="count")
+            )
+            share["step"] = share["bucket"] * window
+            fig = px.area(share, x="step", y="count", color="arm", groupnorm="fraction")
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Enter at least 2 arm rates to run the simulation.")
+
+elif metric_type.startswith("Binary"):
     with st.expander("Binary parameters", expanded=True):
         p0 = st.number_input("Baseline conversion (control)", 0.00001, 0.99999, 0.10, format="%.5f")
         rel_lift = st.number_input("Relative lift for Variant B (e.g. 0.02 = +2%)", -0.9, 5.0, 0.02, step=0.01, format="%.4f")

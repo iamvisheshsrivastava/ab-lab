@@ -40,6 +40,12 @@ from .sequential import (
     always_valid_ci_proportions,
     always_valid_ci_means,
 )
+from .bandits import (
+    thompson_sampling_step,
+    epsilon_greedy_step,
+    ucb1_step,
+    simulate_bandit_run,
+)
 __all__ = [
     # simulate
     "simulate_binomial",
@@ -77,4 +83,9 @@ __all__ = [
     "mixture_sprt_means",
     "always_valid_ci_proportions",
     "always_valid_ci_means",
+    # bandits
+    "thompson_sampling_step",
+    "epsilon_greedy_step",
+    "ucb1_step",
+    "simulate_bandit_run",
 ]
