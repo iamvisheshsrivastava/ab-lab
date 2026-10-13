@@ -71,12 +71,18 @@ if metric_type.startswith("Bandit"):
         ucb_c = st.slider("Exploration coefficient c (UCB1 only)", 0.0, 5.0, 2.0, 0.1)
         bandit_seed = st.number_input("Random seed", 0, 10_000, 7, step=1)
 
+    run = None
     if len(true_rates) >= 2:
-        run = simulate_bandit_run(
-            true_rates, int(n_steps),
-            strategy=strategy, seed=int(bandit_seed),
-            epsilon=epsilon, c=ucb_c,
-        )
+        try:
+            run = simulate_bandit_run(
+                true_rates, int(n_steps),
+                strategy=strategy, seed=int(bandit_seed),
+                epsilon=epsilon, c=ucb_c,
+            )
+        except ValueError:
+            st.error("Could not parse arm rates. Use comma-separated numbers, e.g. 0.10, 0.12, 0.08")
+
+    if run is not None:
         with colL:
             st.subheader("Outcome")
             st.write(f"Best arm: **{int(np.argmax(true_rates))}** (true rate {max(true_rates):.2%})")
@@ -106,7 +112,7 @@ if metric_type.startswith("Bandit"):
             share["step"] = share["bucket"] * window
             fig = px.area(share, x="step", y="count", color="arm", groupnorm="fraction")
             st.plotly_chart(fig, use_container_width=True)
-    else:
+    elif len(true_rates) < 2:
         st.info("Enter at least 2 arm rates to run the simulation.")
 
 elif metric_type.startswith("Binary"):
