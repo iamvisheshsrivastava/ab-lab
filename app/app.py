@@ -332,8 +332,17 @@ else:  # metric_type.startswith("Continuous")
     seq_result = None
     if show_sequential:
         st.subheader("Sequential Monitoring (always-valid)")
-        seq_result = mixture_sprt_means(a, b, alpha=alpha)
-        seq_ci = always_valid_ci_means(a, b, alpha=alpha)
+        # `tau` (the mixture prior std dev) must be fixed before monitoring
+        # begins and must NOT be recomputed from the current sample on every
+        # peek, or the anytime-valid Type-I-error guarantee breaks (see
+        # ablab.sequential.mixture_sprt_means). We use the known/assumed
+        # population std dev `sigma` configured in the sidebar -- set once
+        # per experiment, independent of how much data has accumulated -- as
+        # that fixed prior scale, rather than letting it default to the
+        # (data-dependent) module default.
+        seq_tau = max(float(sigma), 1e-6)
+        seq_result = mixture_sprt_means(a, b, tau=seq_tau, alpha=alpha)
+        seq_ci = always_valid_ci_means(a, b, tau=seq_tau, alpha=alpha)
         st.write(
             f"Anytime-valid p-value: **{seq_result['pvalue']:.4g}**  |  "
             f"decision: **{seq_result['decision']}**"
@@ -341,7 +350,9 @@ else:  # metric_type.startswith("Continuous")
         st.write(f"Always-valid CI (mean_B − mean_A): [{seq_ci[0]:.3g}, {seq_ci[1]:.3g}]")
         st.caption(
             "Unlike the fixed-horizon p-value above, this stays statistically valid "
-            "even if you check it after every new observation."
+            "even if you check it after every new observation. The mixture prior "
+            f"scale (tau={seq_tau:.3g}) is fixed from the configured σ, not "
+            "recomputed from the sample at each peek."
         )
 
     report_results = {

@@ -9,6 +9,7 @@ __all__ = [
     "mixture_sprt_means",
     "always_valid_ci_proportions",
     "always_valid_ci_means",
+    "DEFAULT_TAU_MEANS",
 ]
 
 def _check_counts(x1: int, n1: int, x2: int, n2: int) -> None:
@@ -112,15 +113,37 @@ def mixture_sprt_proportions(
         "decision": _decision(e_value, alpha),
     }
 
+#: Fixed, non-data-dependent default mixture prior std dev (in units of
+#: standard deviations of the metric) used by `mixture_sprt_means` /
+#: `always_valid_ci_means` when the caller does not supply `tau`. It is a
+#: constant -- never recomputed from the sample -- because the anytime-valid
+#: (Ville's inequality) guarantee requires the mixture distribution to be
+#: fixed in advance of looking at the data; a `tau` that changes from peek to
+#: peek (e.g. one derived from the running sample variance) is a different
+#: test martingale at every look and no longer controls Type-I error under
+#: repeated monitoring. Callers with a prior estimate of the effect's scale
+#: (e.g. a pilot standard deviation) should pass that fixed value explicitly
+#: via `tau=...` instead of relying on this default.
+DEFAULT_TAU_MEANS = 1.0
+
 def mixture_sprt_means(
     a: np.ndarray, b: np.ndarray, *, tau: float | None = None, alpha: float = 0.05
 ) -> dict:
     """
     Mixture-SPRT / always-valid test for H0: mean(a) == mean(b).
 
-    tau : prior std dev on the plausible mean difference. If omitted,
-        defaults to the (pooled) sample standard deviation -- a
-        weakly-informative, scale-matched choice.
+    tau : prior std dev on the plausible mean difference, fixed before
+        monitoring begins. If omitted, defaults to the module constant
+        `DEFAULT_TAU_MEANS` (1.0) -- a fixed value, the same on every call,
+        regardless of sample size or sample variance. It is NOT recomputed
+        from `a`/`b`, because the anytime-valid guarantee requires the
+        mixture to be fixed in advance; a tau that depends on the current
+        sample would change from peek to peek and silently invalidate the
+        Type-I-error guarantee under repeated monitoring. If your metric is
+        not on a roughly unit-variance scale, estimate a fixed tau once
+        (e.g. from pilot data or domain knowledge of the expected effect
+        size) and pass it explicitly on every peek of a given monitoring
+        session.
     """
     a = np.asarray(a, dtype=float)
     b = np.asarray(b, dtype=float)
@@ -130,12 +153,11 @@ def mixture_sprt_means(
         raise ValueError("mixture_sprt_means requires at least 2 observations per group")
     if tau is not None and tau <= 0:
         raise ValueError("tau (mixture prior std dev) must be positive")
+    if tau is None:
+        tau = DEFAULT_TAU_MEANS
     var_a, var_b = np.var(a, ddof=1), np.var(b, ddof=1)
     var = var_a / n_a + var_b / n_b
     stat = float(np.mean(b) - np.mean(a))
-    if tau is None:
-        pooled_sd = math.sqrt((var_a + var_b) / 2) if (var_a + var_b) > 0 else 1.0
-        tau = max(pooled_sd, 1e-6)
     e_value = 1.0 if var <= 0 else _mixture_e_value(stat, var, tau ** 2)
     pvalue = min(1.0, 1.0 / e_value) if e_value > 0 else 1.0
     return {
@@ -174,6 +196,12 @@ def always_valid_ci_means(
     """
     Continuously-monitorable confidence sequence for mean(b) - mean(a).
     See `always_valid_ci_proportions` / `mixture_sprt_means` for details.
+
+    tau : prior std dev on the plausible mean difference, fixed before
+        monitoring begins. If omitted, defaults to the module constant
+        `DEFAULT_TAU_MEANS` (1.0), the same fixed value on every call --
+        never recomputed from `a`/`b`. See `mixture_sprt_means` for why a
+        data-dependent default would break the anytime-valid guarantee.
     """
     a = np.asarray(a, dtype=float)
     b = np.asarray(b, dtype=float)
@@ -183,12 +211,11 @@ def always_valid_ci_means(
         raise ValueError("always_valid_ci_means requires at least 2 observations per group")
     if tau is not None and tau <= 0:
         raise ValueError("tau (mixture prior std dev) must be positive")
+    if tau is None:
+        tau = DEFAULT_TAU_MEANS
     var_a, var_b = np.var(a, ddof=1), np.var(b, ddof=1)
     var = var_a / n_a + var_b / n_b
     stat = float(np.mean(b) - np.mean(a))
-    if tau is None:
-        pooled_sd = math.sqrt((var_a + var_b) / 2) if (var_a + var_b) > 0 else 1.0
-        tau = max(pooled_sd, 1e-6)
     if var <= 0:
         return (stat, stat)
     width = _always_valid_width(var, tau ** 2, alpha)
