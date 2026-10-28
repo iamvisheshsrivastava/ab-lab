@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from ablab.metrics import cohens_d, hedges_g
+from ablab.metrics import cohens_d, hedges_g, lift_absolute, lift_relative
 
 
 def test_cohens_d_matches_known_value():
@@ -67,3 +67,30 @@ def test_cohens_d_never_returns_nan():
         except ValueError:
             continue
         assert not math.isnan(result)
+
+
+# --- Issue #15: lift metrics ---
+
+def test_lift_absolute_is_simple_difference():
+    assert lift_absolute(0.10, 0.12) == pytest.approx(0.02)
+
+
+def test_lift_relative_uses_true_denominator():
+    # No 1e-12 clamping: 0.02 / 0.10 = 0.20, not 0.02 / 1e-12.
+    assert lift_relative(0.10, 0.12) == pytest.approx(0.20)
+
+
+def test_lift_relative_returns_zero_for_equal_rates():
+    assert lift_relative(0.05, 0.05) == 0.0
+
+
+def test_lift_relative_raises_on_zero_baseline():
+    # Issue #15: used to clamp the denominator to 1e-12 and return a huge,
+    # misleading number instead of raising.
+    with pytest.raises(ValueError, match="zero baseline"):
+        lift_relative(0.0, 0.5)
+
+
+def test_lift_relative_handles_tiny_but_nonzero_baseline():
+    # p_a != 0 is well-defined even when small; only exactly zero raises.
+    assert lift_relative(1e-9, 1e-8) == pytest.approx(9.0)
