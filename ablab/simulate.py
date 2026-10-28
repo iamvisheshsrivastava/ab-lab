@@ -1,4 +1,3 @@
- 
 from __future__ import annotations
 import numpy as np
 
@@ -55,7 +54,27 @@ def simulate_binomial(
     Returns
     -------
     (a, b) : arrays of 0/1 with length n each.
+
+    Raises
+    ------
+    ValueError
+        If n is not a positive integer, p_control / bot_rate / bot_success_p
+        are outside [0, 1], noise_std is negative, or seasonality_amplitude
+        is outside [0, 1) (see issue #16).
     """
+    if not isinstance(n, (int, np.integer)) or n <= 0:
+        raise ValueError("n must be a positive integer")
+    if not 0 <= p_control <= 1:
+        raise ValueError("p_control must be in [0, 1]")
+    if not 0 <= seasonality_amplitude < 1:
+        raise ValueError("seasonality_amplitude must be in [0, 1)")
+    if noise_std < 0:
+        raise ValueError("noise_std must be non-negative")
+    if not 0 <= bot_rate <= 1:
+        raise ValueError("bot_rate must be in [0, 1]")
+    if not 0 <= bot_success_p <= 1:
+        raise ValueError("bot_success_p must be in [0, 1]")
+
     rng = np.random.default_rng(seed)
 
     season = _seasonality_curve(n, seasonality_amplitude, seasonality_periods, phase=rng.uniform(0, 2*np.pi))
@@ -98,7 +117,27 @@ def simulate_continuous(
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Simulate continuous outcomes (e.g., revenue) for A and B.
+
+    Raises
+    ------
+    ValueError
+        If n is not a positive integer, sigma is non-positive, noise_std or
+        bot_sigma is negative, bot_rate is outside [0, 1], or
+        seasonality_amplitude is outside [0, 1) (see issue #16).
     """
+    if not isinstance(n, (int, np.integer)) or n <= 0:
+        raise ValueError("n must be a positive integer")
+    if sigma <= 0:
+        raise ValueError("sigma must be positive")
+    if not 0 <= seasonality_amplitude < 1:
+        raise ValueError("seasonality_amplitude must be in [0, 1)")
+    if noise_std < 0:
+        raise ValueError("noise_std must be non-negative")
+    if not 0 <= bot_rate <= 1:
+        raise ValueError("bot_rate must be in [0, 1]")
+    if bot_sigma < 0:
+        raise ValueError("bot_sigma must be non-negative")
+
     rng = np.random.default_rng(seed)
 
     season = _seasonality_curve(n, seasonality_amplitude, seasonality_periods, phase=rng.uniform(0, 2*np.pi))
@@ -123,7 +162,16 @@ def simulate_continuous(
 def make_covariate(y: np.ndarray, rho: float = 0.5, seed: int | None = None) -> np.ndarray:
     """
     Create a covariate correlated with target y (for CUPED demos).
+
+    Raises
+    ------
+    ValueError
+        If y is empty or rho is outside [-1, 1] (see issue #16).
     """
+    if len(y) == 0:
+        raise ValueError("y must not be empty")
+    if not -1 <= rho <= 1:
+        raise ValueError("rho must be in [-1, 1]")
     rng = np.random.default_rng(seed)
     y_std = (y - y.mean()) / (y.std() + 1e-12)
     noise = rng.normal(0, 1, size=len(y))
