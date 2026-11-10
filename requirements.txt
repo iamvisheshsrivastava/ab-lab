@@ -4,7 +4,7 @@ scipy>=1.10
 statsmodels>=0.14
 scikit-learn>=1.3
 streamlit>=1.31
-plotly>=5.20
+plotly>=7.1.0
 matplotlib>=3.7
 # Editable self-install so `ablab` is importable from app/app.py and the test
 # suite without a src/ layout. This is required at runtime (Streamlit Cloud
