@@ -1,8 +1,8 @@
- 
+
 from __future__ import annotations
 import math
 import numpy as np
-from typing import Tuple
+from typing import Optional, Tuple
 from scipy import stats
 
 def cuped(y: np.ndarray, covariate: np.ndarray) -> Tuple[np.ndarray, float]:
@@ -22,7 +22,30 @@ def lift_absolute(p_a: float, p_b: float) -> float:
     return float(p_b - p_a)
 
 def lift_relative(p_a: float, p_b: float) -> float:
-    return float((p_b - p_a) / max(p_a, 1e-12))
+    """
+    Relative lift of B over A: (p_b - p_a) / p_a.
+
+    Raises ValueError when p_a == 0 because relative lift is undefined for a
+    zero baseline; it previously clamped the denominator to 1e-12 and returned
+    a huge, misleading number (see issue #15).
+    """
+    if p_a == 0:
+        raise ValueError("Relative lift is undefined for a zero baseline (p_a == 0)")
+    return float((p_b - p_a) / p_a)
+
+def lift_relative_or_none(p_a: float, p_b: float) -> Optional[float]:
+    """
+    Like `lift_relative`, but returns None instead of raising on a zero baseline.
+
+    Callers that report on *observed* sample rates (x_a / n_a) need this:
+    unlike a configured baseline, an observed rate can legitimately be exactly
+    0 with a small sample or a low conversion rate, and there is nothing to
+    report for that run other than "undefined" (see issue #19 review of #15).
+    """
+    try:
+        return lift_relative(p_a, p_b)
+    except ValueError:
+        return None
 
 def cohens_d(a: np.ndarray, b: np.ndarray) -> float:
     """
