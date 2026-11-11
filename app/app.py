@@ -11,7 +11,7 @@ from ablab.metrics import (
     ci_proportion_wilson,
     ci_diff_proportions_wald,
     lift_absolute,
-    lift_relative,
+    lift_relative_or_none,
     cohens_d,
     hedges_g,
 )
@@ -149,7 +149,12 @@ elif metric_type.startswith("Binary"):
         ci = ci_diff_proportions_wald(x1, len(a), x2, len(b))
         st.metric("Control rate", f"{p1:.4%}")
         st.metric("Variant rate", f"{p2:.4%}")
-        st.write(f"**Relative lift**: {lift_relative(p1, p2):.2%}  |  **p-value**: {res['pvalue']:.4g}")
+        obs_rel_lift = lift_relative_or_none(p1, p2)
+        rel_lift_text = (
+            f"{obs_rel_lift:.2%}" if obs_rel_lift is not None
+            else "undefined (zero observed conversions)"
+        )
+        st.write(f"**Relative lift**: {rel_lift_text}  |  **p-value**: {res['pvalue']:.4g}")
         st.write(f"**95% CI (p_B − p_A)**: [{ci[0]:.4%}, {ci[1]:.4%}]")
         if cuped_note is not None:
             theta_a, theta_b, mean_a_adj, mean_b_adj = cuped_note
@@ -225,7 +230,7 @@ elif metric_type.startswith("Binary"):
         "p_value_ztest": res["pvalue"],
         "control_rate": p1,
         "variant_rate": p2,
-        "relative_lift": lift_relative(p1, p2),
+        "relative_lift": rel_lift_text,
         "ci_95_diff": ci,
     }
     if seq_result is not None:

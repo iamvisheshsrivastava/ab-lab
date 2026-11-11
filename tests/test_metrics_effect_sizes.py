@@ -3,7 +3,13 @@ import math
 import numpy as np
 import pytest
 
-from ablab.metrics import cohens_d, hedges_g, lift_absolute, lift_relative
+from ablab.metrics import (
+    cohens_d,
+    hedges_g,
+    lift_absolute,
+    lift_relative,
+    lift_relative_or_none,
+)
 
 
 def test_cohens_d_matches_known_value():
@@ -94,3 +100,17 @@ def test_lift_relative_raises_on_zero_baseline():
 def test_lift_relative_handles_tiny_but_nonzero_baseline():
     # p_a != 0 is well-defined even when small; only exactly zero raises.
     assert lift_relative(1e-9, 1e-8) == pytest.approx(9.0)
+
+
+# --- Issue #19 review: zero *observed* baseline must not crash the caller ---
+
+def test_lift_relative_or_none_matches_lift_relative_when_defined():
+    assert lift_relative_or_none(0.10, 0.12) == pytest.approx(0.20)
+
+
+def test_lift_relative_or_none_returns_none_for_zero_baseline():
+    # An observed control rate of exactly 0 is reachable (x_a == 0), and the
+    # caller reports "undefined" instead of the ValueError escaping the page.
+    assert lift_relative_or_none(0.0, 0.5) is None
+    assert lift_relative_or_none(0.0, 0.0) is None
+
